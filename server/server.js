@@ -55,30 +55,36 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
 // ==========================================
-// 2. CORS CONFIGURATION
+// ==========================================
+// 2. CORS CONFIGURATION - UPDATED
 // ==========================================
 
-const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? [process.env.CLIENT_URL || 'https://yourdomain.com'] 
-  : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173'];
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://client-three-alpha-93.vercel.app',
+  'https://neon-tasks.vercel.app',
+  process.env.CLIENT_URL
+].filter(Boolean); // Remove undefined/null
 
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
     }
-    return callback(null, true);
+    
+    console.log('Blocked by CORS:', origin);
+    const msg = 'The CORS policy does not allow access from this origin.';
+    return callback(new Error(msg), false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-
-// ==========================================
 // 3. BODY PARSING & DATA SANITIZATION
 // ==========================================
 
