@@ -5,10 +5,9 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000, // Increased for Render cold starts
+  timeout: 15000,
 });
 
-// Request interceptor
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -20,7 +19,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor with better error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -29,11 +27,6 @@ api.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/auth';
     }
-    
-    if (!error.response) {
-      console.error('Network error - check if backend is running');
-    }
-    
     return Promise.reject(error);
   }
 );
@@ -46,7 +39,6 @@ export const authAPI = {
 
 export const todoAPI = {
   getAll: () => api.get('/todos'),
-  getById: (id) => api.get(`/todos/${id}`),
   create: (data) => api.post('/todos', data),
   update: (id, data) => api.put(`/todos/${id}`, data),
   delete: (id) => api.delete(`/todos/${id}`),
