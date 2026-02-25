@@ -1,19 +1,62 @@
+// server/config/db.js - PRODUCTION READY
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    console.log("DEBUG MONGODB_URI =", process.env.MONGODB_URI);
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      // These options are no longer needed in Mongoose 6+, but kept for clarity
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      
+      // Connection pool settings
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      
+      // Timeout settings
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
+      
+      // Retry settings
+      retryWrites: true,
+      w: 'majority',
+    });
 
-    if (!process.env.MONGODB_URI) {
-      throw new Error("MONGODB_URI is undefined. Check your .env file.");
-    }
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    console.log(`📊 Database: ${conn.connection.name}`);
 
-    const conn = await mongoose.connect(process.env.MONGODB_URI);
+    // Connection event handlers
+    mongoose.connection.on('error', (err) => {
+      console.error('❌ MongoDB connection error:', err);
+    });
 
-    console.log(`🟢 MongoDB Connected: ${conn.connection.host}`);
+    mongoose.connection.on('disconnected', () => {
+      console.warn('⚠️  MongoDB disconnected. Attempting to reconnect...');
+    });
+
+    mongoose.connection.on('reconnected', () => {
+      console.log('✅ MongoDB reconnected');
+    });
+
+    // Graceful shutdown
+    process.on('SIGINT', async () => {
+      await mongoose.connection.close();
+      console.log('👋 MongoDB connection closed through app termination');
+      process.exit(0);
+    });
+
+    return conn;
+
   } catch (error) {
-    console.error("🔴 MongoDB connection failed:", error.message);
-    process.exit(1);
+    console.error(`❌ MongoDB Connection Error: ${error.message}`);
+    
+    // Retry logic for initial connection
+    if (process.env.NODE_ENV === 'production') {
+      console.log('🔄 Retrying connection in 5 seconds...');
+      setTimeout(connectDB, 5000);
+    } else {
+      process.exit(1);
+    }
   }
 };
 

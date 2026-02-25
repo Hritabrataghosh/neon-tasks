@@ -1,0 +1,22 @@
+{
+  "name": "neon-tasks",
+  "version": "1.0.0",
+  "description": "Cyberpunk themed Todo Application",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm run dev\"",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start",
+    "render-build": "npm install && cd client && npm install && npm run build && cd ../server && npm install"
+  },
+  "keywords": ["react", "nodejs", "mongodb", "cyberpunk"],
+  "author": "Hritabrata Ghosh",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

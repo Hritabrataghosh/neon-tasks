@@ -1,13 +1,11 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL; // ✅ use env
-
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 15000, // Increased for Render cold starts
 });
 
 // Request interceptor
@@ -17,30 +15,42 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    console.log(`📤 ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
-  (error) => {
-    console.error('❌ Request error:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor
+// Response interceptor with better error handling
 api.interceptors.response.use(
-  (response) => {
-    console.log(`📥 ${response.status} ${response.config.url}`);
-    return response;
-  },
+  (response) => response,
   (error) => {
-    console.error('❌ Response error:', error.response?.data || error.message);
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/auth';
     }
+    
+    if (!error.response) {
+      console.error('Network error - check if backend is running');
+    }
+    
     return Promise.reject(error);
   }
 );
+
+export const authAPI = {
+  register: (data) => api.post('/auth/register', data),
+  login: (data) => api.post('/auth/login', data),
+  getMe: () => api.get('/auth/me'),
+};
+
+export const todoAPI = {
+  getAll: () => api.get('/todos'),
+  getById: (id) => api.get(`/todos/${id}`),
+  create: (data) => api.post('/todos', data),
+  update: (id, data) => api.put(`/todos/${id}`, data),
+  delete: (id) => api.delete(`/todos/${id}`),
+  toggleComplete: (id) => api.patch(`/todos/${id}/complete`),
+};
 
 export default api;

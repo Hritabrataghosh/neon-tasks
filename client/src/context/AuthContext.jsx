@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
     const initAuth = () => {
       const token = localStorage.getItem('token');
       const savedUser = localStorage.getItem('user');
+
       if (token && savedUser) {
         try {
           const parsedUser = JSON.parse(savedUser);
@@ -19,13 +20,14 @@ export const AuthProvider = ({ children }) => {
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           console.log('✅ Auth restored from storage');
         } catch (e) {
-          console.error('❌ Failed to parse user data');
+          console.error('❌ Failed to restore auth:', e);
           localStorage.removeItem('token');
           localStorage.removeItem('user');
         }
       }
       setLoading(false);
     };
+
     initAuth();
   }, []);
 
@@ -33,45 +35,46 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       console.log('🔑 Attempting login...', email);
-      
-      const response = await api.post('/auth/login', { email, password });
-      console.log('✅ Login response:', response.data);
-      
-      const { token, ...userData } = response.data;
+
+      const res = await api.post('/auth/login', { email, password });
+
+      const { token, ...userData } = res.data;
+
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userData));
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
       setUser(userData);
       return { success: true };
-    } catch (error) {
-      console.error('❌ Login error:', error);
-      const message = error.response?.data?.message || 'Connection failed. Is server running?';
-      setError(message);
-      return { success: false, error: message };
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Login failed (server unreachable?)';
+      console.error('❌ Login error:', msg);
+      setError(msg);
+      return { success: false, error: msg };
     }
   };
 
   const register = async (username, email, password) => {
     try {
       setError(null);
-      console.log('📝 Attempting register...', username, email);
-      
-      const response = await api.post('/auth/register', { username, email, password });
-      console.log('✅ Register response:', response.data);
-      
-      const { token, ...userData } = response.data;
+      console.log('📝 Registering user...');
+
+      const res = await api.post('/auth/register', { username, email, password });
+
+      const { token, ...userData } = res.data;
+
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userData));
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
       setUser(userData);
       return { success: true };
-    } catch (error) {
-      console.error('❌ Register error:', error);
-      const message = error.response?.data?.message || 'Registration failed';
-      setError(message);
-      return { success: false, error: message };
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Registration failed';
+      console.error('❌ Register error:', msg);
+      setError(msg);
+      return { success: false, error: msg };
     }
-    
   };
 
   const logout = () => {
@@ -91,11 +94,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser, loading, error }}>
+    <AuthContext.Provider
+      value={{ user, login, register, logout, updateUser, loading, error }}
+    >
       {children}
     </AuthContext.Provider>
   );
-  
 };
 
 export const useAuth = () => useContext(AuthContext);
